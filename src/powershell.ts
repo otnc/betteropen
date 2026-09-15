@@ -1,27 +1,20 @@
 import { Buffer } from 'node:buffer'
 import childProcess, { type ExecFileOptions } from 'node:child_process'
-import fs, { constants as fsConstants } from 'node:fs/promises'
 import process from 'node:process'
 import { promisify } from 'node:util'
 
 const execFile = promisify(childProcess.execFile)
 
-/** Windows PowerShell is always installed at this fixed, well-known path. */
-export function windowsPowerShellPath(): string {
-  const systemRoot = process.env.SYSTEMROOT || process.env.windir || String.raw`C:\Windows`
-  return `${systemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
+/** The Windows system directory, falling back to the standard install location. */
+export function windowsSystemRoot(): string {
+  return process.env.SYSTEMROOT || process.env.windir || String.raw`C:\Windows`
 }
 
-let canAccessCache: Promise<boolean> | undefined
-
-/** Whether the PowerShell executable at {@link windowsPowerShellPath} can be run. */
-export function canAccessPowerShell(): Promise<boolean> {
-  canAccessCache ??= fs
-    .access(windowsPowerShellPath(), fsConstants.X_OK)
-    .then(() => true)
-    .catch(() => false)
-
-  return canAccessCache
+/**
+ * Windows PowerShell is always installed at this fixed, well-known path. On native Windows this is directly executable; from inside WSL it needs translating to the distro's mounted path first — see `powerShellPathFromWsl` in `wsl-path.ts`, which is what actually gets spawned in that case.
+ */
+export function windowsPowerShellPath(): string {
+  return `${windowsSystemRoot()}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
 }
 
 const argumentsPrefix = [

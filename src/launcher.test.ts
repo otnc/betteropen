@@ -2,20 +2,28 @@ import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const spawn = vi.fn()
-const { resolveBrowserApp } = vi.hoisted(() => ({ resolveBrowserApp: vi.fn() }))
+const { resolveBrowserApp, isWsl, convertWslPathToWindows } = vi.hoisted(() => ({
+  resolveBrowserApp: vi.fn(),
+  isWsl: vi.fn().mockReturnValue(false),
+  convertWslPathToWindows: vi.fn(async (target: string) => target),
+}))
 
 vi.mock('node:child_process', () => ({ default: { spawn, execFile: vi.fn() } }))
 vi.mock('./browsers.js', () => ({ resolveBrowserApp }))
 vi.mock('./env.js', () => ({
-  isWsl: () => false,
+  isWsl,
   isInsideContainer: () => false,
   isInSsh: () => false,
 }))
-vi.mock('./powershell.js', async () => {
-  const actual = await vi.importActual<typeof import('./powershell')>('./powershell')
-  return { ...actual, canAccessPowerShell: vi.fn().mockResolvedValue(false) }
-})
 vi.mock('./xdg-open.js', () => ({ resolveXdgOpenCommand: vi.fn().mockResolvedValue('xdg-open') }))
+vi.mock('./wsl-path.js', async () => {
+  const actual = await vi.importActual<typeof import('./wsl-path')>('./wsl-path')
+  return {
+    ...actual,
+    canAccessPowerShellFromWsl: vi.fn().mockResolvedValue(false),
+    convertWslPathToWindows,
+  }
+})
 
 const { open, openApp } = await import('./launcher')
 
@@ -28,9 +36,7 @@ function setPlatform(platform: NodeJS.Platform) {
   Object.defineProperty(process, 'platform', { value: platform, configurable: true })
 }
 
-// `launch()` may await a few internal checks (e.g. resolving the xdg-open
-// command) before it actually calls `spawn()`, so wait for that call to
-// happen rather than assuming it already has by the time this returns.
+// `launch()` may await a few internal checks (e.g. resolving the xdg-open command) before it actually calls `spawn()`, so wait for that call to happen rather than assuming it already has by the time this returns.
 async function waitForSpawn(): Promise<void> {
   await vi.waitFor(() => {
     if (spawn.mock.calls.length === 0) {
@@ -48,6 +54,9 @@ describe('launch', () => {
     spawn.mockReset()
     spawn.mockReturnValue(child)
     resolveBrowserApp.mockReset()
+    isWsl.mockReturnValue(false)
+    convertWslPathToWindows.mockClear()
+    convertWslPathToWindows.mockImplementation(async (target: string) => target)
   })
 
   afterEach(() => {
@@ -88,6 +97,27 @@ describe('launch', () => {
     )
   })
 
+  it('converts the target to a Windows path when spawning a WSL-mounted .exe directly', async () => {
+    setPlatform('linux')
+    isWsl.mockReturnValue(true)
+    convertWslPathToWindows.mockResolvedValue(String.raw`C:\Users\me\report.html`)
+
+    const promise = open('/home/me/report.html', {
+      app: { name: '/mnt/c/Program Files/Mozilla Firefox/firefox.exe' },
+    })
+    await waitForSpawn()
+    child.emit('spawn')
+
+    await promise
+
+    expect(convertWslPathToWindows).toHaveBeenCalledWith('/home/me/report.html')
+    expect(spawn).toHaveBeenCalledWith(
+      '/mnt/c/Program Files/Mozilla Firefox/firefox.exe',
+      [String.raw`C:\Users\me\report.html`],
+      expect.anything(),
+    )
+  })
+
   it('falls back to xdg-open on Linux when no app is given', async () => {
     setPlatform('linux')
     const promise = open('https://example.com')
@@ -115,6 +145,17 @@ describe('launch', () => {
     child.emit('close', 1)
 
     await expect(promise).resolves.toBe(child)
+  })
+
+  it('does not hang waiting for a directly-spawned Linux app to exit when trying candidates', async () => {
+    setPlatform('linux')
+    // Simulates a real browser binary that, once launched, never closes on its own — as opposed to a launcher script that hands off and exits quickly.
+    const promise = openApp(['google-chrome', 'chromium'])
+    await waitForSpawn()
+    child.emit('spawn')
+
+    await expect(promise).resolves.toBe(child)
+    expect(spawn).toHaveBeenCalledTimes(1)
   })
 
   it('fans out over multiple candidate paths returned for a resolved default browser', async () => {

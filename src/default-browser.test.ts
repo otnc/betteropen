@@ -58,4 +58,33 @@ HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\
     const { defaultBrowserId } = await import('./default-browser')
     await expect(defaultBrowserId()).resolves.toBe('firefox.desktop')
   })
+
+  it('caches the result instead of re-detecting on every call', async () => {
+    vi.resetModules()
+    setPlatform('linux')
+    const execFile = mockExecFile('firefox.desktop\n')
+    vi.doMock('node:child_process', () => ({ default: { execFile } }))
+    vi.doMock('./env.js', () => ({ isWsl: () => false }))
+
+    const { defaultBrowserId } = await import('./default-browser')
+    await defaultBrowserId()
+    await defaultBrowserId()
+
+    expect(execFile).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not cache a failed detection', async () => {
+    vi.resetModules()
+    setPlatform('linux')
+    const execFile = vi.fn().mockRejectedValue(new Error('xdg-mime not found'))
+    Object.defineProperty(execFile, promisify.custom, { value: execFile, configurable: true })
+    vi.doMock('node:child_process', () => ({ default: { execFile } }))
+    vi.doMock('./env.js', () => ({ isWsl: () => false }))
+
+    const { defaultBrowserId } = await import('./default-browser')
+    await expect(defaultBrowserId()).rejects.toThrow()
+    await expect(defaultBrowserId()).rejects.toThrow()
+
+    expect(execFile).toHaveBeenCalledTimes(2)
+  })
 })

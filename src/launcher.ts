@@ -5,12 +5,15 @@ import { resolveBrowserApp } from './browsers.js'
 import { isInSsh, isInsideContainer, isWsl } from './env.js'
 import {
   buildEncodedCommandArguments,
-  canAccessPowerShell,
   escapePowerShellArgument,
   windowsPowerShellPath,
 } from './powershell.js'
 import type { AppTarget, OpenAppOptions, Options } from './types.js'
-import { convertWslPathToWindows, powerShellPathFromWsl } from './wsl-path.js'
+import {
+  canAccessPowerShellFromWsl,
+  convertWslPathToWindows,
+  powerShellPathFromWsl,
+} from './wsl-path.js'
 import { resolveXdgOpenCommand } from './xdg-open.js'
 
 const fallbackAttemptSymbol = Symbol('fallbackAttempt')
@@ -82,10 +85,16 @@ async function launch(options: InternalOptions): Promise<ChildProcess> {
   const cliArguments: string[] = []
   const spawnOptions: SpawnOptions = {}
   let target = options.target
+  // Whether `command` is a launcher that hands off and exits quickly regardless of outcome (macOS `open`, PowerShell's `Start-Process`, or `xdg-open`) — as opposed to a spawned app binary that keeps running for as long as the app stays open. Only set to `false` below, for the one case where `command` can be the app itself: an explicit app on Linux, spawned directly.
+  let commandExitsQuickly = true
 
   // Only use Windows integration from WSL when PowerShell is actually reachable — this keeps things working inside sandboxed WSL environments (and containers running under WSL) that can't see the Windows host at all.
   const useWindowsFromWsl =
-    isWsl() && !isInsideContainer() && !isInSsh() && !appName && (await canAccessPowerShell())
+    isWsl() &&
+    !isInsideContainer() &&
+    !isInSsh() &&
+    !appName &&
+    (await canAccessPowerShellFromWsl())
 
   if (process.platform === 'darwin') {
     command = 'open'
@@ -138,6 +147,14 @@ async function launch(options: InternalOptions): Promise<ChildProcess> {
     }
   } else {
     command = appName ?? (await resolveXdgOpenCommand())
+    // An explicit app is spawned directly rather than handed to `xdg-open`, so `command` here can be the long-running app itself (e.g. a browser binary that execs straight into the running process instead of forking).
+    commandExitsQuickly = !appName
+
+    // WSL can exec a Windows binary straight from a Linux path (e.g. the `/mnt/c/...` paths `apps.chrome`/`brave`/`edge` resolve to), via its own interop rather than PowerShell — but that interop doesn't also translate the arguments, so a Linux-style target path still needs converting here for the Windows app to understand it.
+    if (isWsl() && target && /\.exe$/i.test(command)) {
+      target = await convertWslPathToWindows(target)
+    }
+
     cliArguments.push(...appArguments)
     if (target) cliArguments.push(target)
 
@@ -150,49 +167,83 @@ async function launch(options: InternalOptions): Promise<ChildProcess> {
 
   const subprocess = childProcess.spawn(command, cliArguments, spawnOptions)
 
-  if (options.wait) {
-    return new Promise((resolve, reject) => {
-      subprocess.once('error', reject)
-      subprocess.once('close', (exitCode) => {
-        if (!options.allowNonzeroExitCode && exitCode !== 0) {
-          reject(new Error(`Exited with code ${exitCode}`))
-          return
-        }
-
-        resolve(subprocess)
-      })
-    })
-  }
-
-  // The PowerShell launcher must always be awaited until it closes, even when not waiting for the app: it needs time to run `Start-Process` before it's safe to let the caller's process exit, since libuv kills non-detached children when the parent exits. A fallback attempt also needs the exit code to know whether the app actually launched, before trying the next candidate.
-  if (isFallbackAttempt || process.platform === 'win32' || useWindowsFromWsl) {
+  // Resolve as soon as the process has spawned, without waiting for it to exit. Used for both the plain fire-and-forget case and, with a short grace period, for judging whether a fallback candidate actually launched.
+  function resolveOnSpawn(closeGraceMs?: number): Promise<ChildProcess> {
     return new Promise((resolve, reject) => {
       subprocess.once('error', reject)
       subprocess.once('spawn', () => {
-        subprocess.once('close', (exitCode) => {
+        if (!closeGraceMs) {
+          subprocess.off('error', reject)
+          subprocess.unref()
+          resolve(subprocess)
+          return
+        }
+
+        // A candidate that's actually a launcher-less app binary (e.g. a browser spawned directly on Linux) never closes on its own, so give it a moment to fail fast (a missing dependency, a broken install) before treating "still running" as success.
+        const timer = setTimeout(() => {
+          subprocess.off('close', onClose)
+          subprocess.off('error', reject)
+          subprocess.unref()
+          resolve(subprocess)
+        }, closeGraceMs)
+        timer.unref()
+
+        const onClose = (exitCode: number | null) => {
+          clearTimeout(timer)
           subprocess.off('error', reject)
 
-          if (isFallbackAttempt && exitCode !== 0) {
+          if (exitCode !== 0) {
             reject(new Error(`Exited with code ${exitCode}`))
             return
           }
 
           subprocess.unref()
           resolve(subprocess)
-        })
+        }
+
+        subprocess.once('close', onClose)
       })
     })
   }
 
-  subprocess.unref()
+  // Wait for the process to fully exit before resolving, rejecting on a nonzero exit code unless told not to. Used for `wait: true`, and for any command that's a fast-exiting launcher (macOS `open`, PowerShell, `xdg-open`) rather than the app itself — waiting for those to close is what tells us whether the launch actually succeeded, and (for PowerShell) also what keeps them alive long enough to run in the first place, since libuv kills non-detached children when the parent exits.
+  function resolveOnClose(rejectOnNonzero: boolean, keepAlive: boolean): Promise<ChildProcess> {
+    return new Promise((resolve, reject) => {
+      subprocess.once('error', reject)
 
-  return new Promise((resolve, reject) => {
-    subprocess.once('error', reject)
-    subprocess.once('spawn', () => {
-      subprocess.off('error', reject)
-      resolve(subprocess)
+      const onClose = (exitCode: number | null) => {
+        subprocess.off('error', reject)
+
+        if (rejectOnNonzero && exitCode !== 0) {
+          reject(new Error(`Exited with code ${exitCode}`))
+          return
+        }
+
+        if (!keepAlive) subprocess.unref()
+        resolve(subprocess)
+      }
+
+      if (keepAlive) {
+        subprocess.once('close', onClose)
+      } else {
+        subprocess.once('spawn', () => subprocess.once('close', onClose))
+      }
     })
-  })
+  }
+
+  if (options.wait) {
+    return resolveOnClose(!options.allowNonzeroExitCode, true)
+  }
+
+  if (process.platform === 'win32' || useWindowsFromWsl) {
+    return resolveOnClose(isFallbackAttempt, false)
+  }
+
+  if (isFallbackAttempt) {
+    return commandExitsQuickly ? resolveOnClose(true, false) : resolveOnSpawn(250)
+  }
+
+  return resolveOnSpawn()
 }
 
 export function open(target: string, options?: Options): Promise<ChildProcess> {

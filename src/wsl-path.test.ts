@@ -61,3 +61,33 @@ describe('powerShellPathFromWsl', () => {
     )
   })
 })
+
+describe('canAccessPowerShellFromWsl', () => {
+  it('checks the WSL-mounted path, not the raw Windows-style path', async () => {
+    vi.resetModules()
+    const execFile = mockExecFile('/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe\n')
+    vi.doMock('node:child_process', () => ({ default: { execFile } }))
+    const access = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('node:fs/promises', () => ({ default: { access } }))
+
+    const { canAccessPowerShellFromWsl } = await import('./wsl-path')
+    await expect(canAccessPowerShellFromWsl()).resolves.toBe(true)
+
+    // A `fs.access` call against the raw `C:\...` string can never succeed on a POSIX filesystem, so this must be the WSL-translated `/mnt/c/...` path.
+    expect(access).toHaveBeenCalledWith(
+      '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+      expect.anything(),
+    )
+  })
+
+  it('is false when the WSL-mounted path is not accessible', async () => {
+    vi.resetModules()
+    const execFile = mockExecFile('/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe\n')
+    vi.doMock('node:child_process', () => ({ default: { execFile } }))
+    const access = vi.fn().mockRejectedValue(new Error('ENOENT'))
+    vi.doMock('node:fs/promises', () => ({ default: { access } }))
+
+    const { canAccessPowerShellFromWsl } = await import('./wsl-path')
+    await expect(canAccessPowerShellFromWsl()).resolves.toBe(false)
+  })
+})

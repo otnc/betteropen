@@ -3,7 +3,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { promisify } from 'node:util'
 import { isWsl } from './env.js'
-import { executePowerShell } from './powershell.js'
+import { executePowerShell, windowsSystemRoot } from './powershell.js'
 import { powerShellPathFromWsl } from './wsl-path.js'
 
 const execFile = promisify(childProcess.execFile)
@@ -32,7 +32,7 @@ function parseWindowsProgId(regQueryOutput: string): string {
 }
 
 async function windowsDefaultBrowserId(): Promise<string> {
-  const regPath = `${process.env.SYSTEMROOT ?? process.env.windir ?? String.raw`C:\Windows`}\\System32\\reg.exe`
+  const regPath = `${windowsSystemRoot()}\\System32\\reg.exe`
   const { stdout } = await execFile(regPath, [
     'QUERY',
     String.raw`HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice`,
@@ -61,10 +61,22 @@ async function linuxDefaultBrowserId(): Promise<string> {
   return stdout.trim()
 }
 
+let defaultBrowserIdCache: Promise<string> | undefined
+
 /**
- * Get a raw identifier for the user's default browser: a macOS bundle id, a Linux `.desktop` file name, or a Windows ProgId (which may carry a hash suffix, e.g. `FirefoxURL-6F193CCC56814779`). The exact format is platform-dependent — see `browsers.ts` for how it gets resolved to a browser name.
+ * Get a raw identifier for the user's default browser: a macOS bundle id, a Linux `.desktop` file name, or a Windows ProgId (which may carry a hash suffix, e.g. `FirefoxURL-6F193CCC56814779`). The exact format is platform-dependent — see `browsers.ts` for how it gets resolved to a browser name. The result is cached for the life of the process, same as the resolved app binaries in `browsers.ts`.
  */
-export async function defaultBrowserId(): Promise<string> {
+export function defaultBrowserId(): Promise<string> {
+  defaultBrowserIdCache ??= resolveDefaultBrowserId().catch((error: unknown) => {
+    // Don't cache a failed detection — a transient error (or a fixable one, like a missing `xdg-mime`) shouldn't stick for the rest of the process.
+    defaultBrowserIdCache = undefined
+    throw error
+  })
+
+  return defaultBrowserIdCache
+}
+
+async function resolveDefaultBrowserId(): Promise<string> {
   if (process.platform === 'darwin') {
     return macDefaultBrowserId()
   }

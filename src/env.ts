@@ -29,9 +29,12 @@ export function isDocker(): boolean {
   return cgroup?.includes('docker') ?? false
 }
 
+let insideContainerCache: boolean | undefined
+
 /** True when running inside any kind of container (Docker or Podman). */
 export function isInsideContainer(): boolean {
-  return existsSafe('/run/.containerenv') || isDocker()
+  insideContainerCache ??= existsSafe('/run/.containerenv') || isDocker()
+  return insideContainerCache
 }
 
 /** True when connected over SSH. */
