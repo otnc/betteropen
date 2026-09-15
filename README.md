@@ -94,7 +94,7 @@ A feature comparison against packages commonly reached for in this space — two
 | Module format | ESM + CJS | ESM only | ESM only | ESM only |
 | CLI stdin piping with type detection | ✅ | — | ✅ | — |
 | Library runtime dependencies | 0 | 6 | — | 0 |
-| CLI runtime dependencies | 2 | — | 4, including `open` itself | no CLI |
+| CLI runtime dependencies | 2 | — | 4, including `open` itself | — |
 
 ## Requirements
 
