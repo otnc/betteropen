@@ -5,12 +5,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for submitting a bug report. It helps make <package-name> better.
+        Thank you for submitting a bug report. It helps make betteropen better.
 
         Please try to include as much information as possible.
   - type: input
     attributes:
-      label: What version of <package-name> are you using?
+      label: What version of betteropen are you using?
       placeholder: 0.0.0
     validations:
       required: true

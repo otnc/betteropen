@@ -1,16 +1,16 @@
-# <package-name>
+# betteropen
 
-> <package-description>
+> Better and more convenient "open"
 
-[![npm](https://img.shields.io/npm/v/<package-name>)](https://www.npmjs.com/package/<package-name>)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/<package-repo>/ci.yml?branch=main)](<package-git>/actions)
-[![GitHub](https://img.shields.io/github/license/<package-repo>)](<package-git>/blob/main/LICENSE)
-[![Node](https://img.shields.io/node/v/<package-name>)](https://www.npmjs.com/package/<package-name>)
+[![npm](https://img.shields.io/npm/v/betteropen)](https://www.npmjs.com/package/betteropen)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/otnc/betteropen/ci.yml?branch=main)](https://github.com/otnc/betteropen/actions)
+[![GitHub](https://img.shields.io/github/license/otnc/betteropen)](https://github.com/otnc/betteropen/blob/main/LICENSE)
+[![Node](https://img.shields.io/node/v/betteropen)](https://www.npmjs.com/package/betteropen)
 
 ## Install
 
 ```sh
-npm install <package-name>
+npm install betteropen
 ```
 
 ## Usage
@@ -18,7 +18,7 @@ npm install <package-name>
 <!-- Replace with a real usage example. -->
 
 ```ts
-import { greet } from '<package-name>'
+import { greet } from 'betteropen'
 ```
 
 ## Requirements
@@ -35,4 +35,4 @@ Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ## License
 
-Distributed under the [<package-license> License](./LICENSE).
+Distributed under the [MIT License](./LICENSE).

@@ -1,26 +1,53 @@
 {
-  "name": "<package-name>",
+  "name": "betteropen",
   "version": "0.0.0",
-  "description": "<package-description>",
-  "keywords": [],
-  "homepage": "<package-git>#readme",
+  "description": "Better and more convenient \"open\"",
+  "keywords": [
+    "app",
+    "open",
+    "opener",
+    "opens",
+    "launch",
+    "start",
+    "xdg-open",
+    "xdg",
+    "default",
+    "cmd",
+    "browser",
+    "editor",
+    "executable",
+    "exe",
+    "url",
+    "urls",
+    "arguments",
+    "args",
+    "spawn",
+    "exec",
+    "child",
+    "process",
+    "website",
+    "file",
+    "open-cli",
+    "cli"
+  ],
+  "homepage": "https://github.com/otnc/betteropen#readme",
   "bugs": {
-    "url": "<package-git>/issues"
+    "url": "https://github.com/otnc/betteropen/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+<package-git>.git"
+    "url": "git+https://github.com/otnc/betteropen.git"
   },
-  "license": "<package-license>",
-  "author": "<package-author>",
+  "license": "MIT",
+  "author": "otoneko.",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
-  "types": "dist/index.d.mts",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": {
-        "import": "./dist/index.d.mts",
+        "import": "./dist/index.d.ts",
         "require": "./dist/index.d.cts"
       },
       "import": "./dist/index.mjs",
@@ -31,11 +58,11 @@
     "dist"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
   },
   "scripts": {
     "setup": "node scripts/setup.js",
-    "build": "tsdown",
+    "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -50,10 +77,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
-    "@types/node": "^22.20.2",
-    "@vitest/coverage-v8": "^5.0.1",
-    "tsdown": "^0.23.0",
+    "@types/node": "^20.19.43",
+    "@vitest/coverage-v8": "^4.1.11",
+    "tsup": "^8.5.1",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^4.1.11"
   }
 }

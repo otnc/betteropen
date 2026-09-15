@@ -28,7 +28,7 @@ closes
 
 - [ ] Check if duplicate PR(s) already exist.
 - [ ] Read `CONTRIBUTING.md` (rules)
-- [ ] Run `<pm> run check` (lint & format)
-- [ ] Run `<pm> run test` (functions test)
-- [ ] Run `<pm> run build` (`dist/`)
-- [ ] (optional) Run `<pm> run test:coverage` and check nothing new went uncovered
+- [ ] Run `npm run check` (lint & format)
+- [ ] Run `npm run test` (functions test)
+- [ ] Run `npm run build` (`dist/`)
+- [ ] (optional) Run `npm run test:coverage` and check nothing new went uncovered
