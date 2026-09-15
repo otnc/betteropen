@@ -66,8 +66,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "setup": "node scripts/setup.js",
-    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "clean": "node scripts/clean.js",
     "build": "npm run clean && tsup",
     "test": "vitest run",
     "test:watch": "vitest",
