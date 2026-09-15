@@ -60,7 +60,8 @@
   ],
   "bin": {
     "betteropen": "./dist/cli.js",
-    "open": "./dist/cli.js"
+    "open-cli": "./dist/cli.js",
+    "opencli": "./dist/cli.js"
   },
   "engines": {
     "node": ">=20"

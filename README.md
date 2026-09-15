@@ -64,7 +64,7 @@ apps.browserPrivate // the OS default browser, in private/incognito mode
 
 ### As a CLI
 
-Installed as both `betteropen` and `open`:
+Installed as `betteropen`, `open-cli`, and `opencli` (not just plain `open`, since that would shadow macOS's built-in `open` command):
 
 ```sh
 betteropen https://example.com
@@ -77,7 +77,7 @@ echo '<h1>hi</h1>' | betteropen --extension=html
 Run `betteropen --help` for the full flag list.
 
 > [!NOTE]
-> Installing this package globally may conflict with any other package that also provides an `open` command.
+> `open-cli`/`opencli` may still conflict with another package's bin of the same name if you have one installed globally.
 
 ## How it compares
 
