@@ -82,6 +82,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "citty": "^0.2.2",
     "magic-bytes.js": "^1.13.1"
   },
   "devDependencies": {

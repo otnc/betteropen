@@ -9,24 +9,7 @@ vi.mock('./launcher.js', () => ({ open }))
 vi.mock('node:fs/promises', () => ({ writeFile }))
 vi.mock('magic-bytes.js', () => ({ filetypeextension }))
 
-const { splitAppArguments, readTargetFromStdin, main } = await import('./cli')
-
-describe('splitAppArguments', () => {
-  it('returns everything as mainArgs when there is no `--`', () => {
-    expect(splitAppArguments(['file.txt', '--wait'])).toEqual({
-      mainArgs: ['file.txt', '--wait'],
-      appArguments: [],
-    })
-  })
-
-  it('splits the app name and its arguments after `--`', () => {
-    expect(splitAppArguments(['file.txt', '--', 'firefox', '--private-window'])).toEqual({
-      mainArgs: ['file.txt'],
-      app: 'firefox',
-      appArguments: ['--private-window'],
-    })
-  })
-})
+const { readTargetFromStdin, runOpen, main } = await import('./cli')
 
 describe('readTargetFromStdin', () => {
   beforeEach(() => {
@@ -56,8 +39,7 @@ describe('readTargetFromStdin', () => {
   })
 })
 
-describe('main', () => {
-  const originalArgv = process.argv
+describe('runOpen', () => {
   const originalStdin = process.stdin
 
   beforeEach(() => {
@@ -65,35 +47,77 @@ describe('main', () => {
   })
 
   afterEach(() => {
-    process.argv = originalArgv
     Object.defineProperty(process, 'stdin', { value: originalStdin, configurable: true })
   })
 
-  it('opens the given target with the parsed flags', async () => {
-    process.argv = ['node', 'cli.js', 'https://example.com', '--wait']
-    await main()
+  it('opens the given target with the given flags', async () => {
+    await runOpen({
+      target: 'https://example.com',
+      wait: true,
+      background: false,
+      appArguments: [],
+    })
     expect(open).toHaveBeenCalledWith(
       'https://example.com',
       expect.objectContaining({ wait: true, background: false }),
     )
   })
 
-  it('passes the app and its arguments after `--`', async () => {
-    process.argv = ['node', 'cli.js', 'https://example.com', '--', 'firefox', '--private-window']
-    await main()
+  it('passes the app and its arguments through to `open`', async () => {
+    await runOpen({
+      target: 'https://example.com',
+      wait: false,
+      background: false,
+      app: 'firefox',
+      appArguments: ['--private-window'],
+    })
     expect(open).toHaveBeenCalledWith(
       'https://example.com',
       expect.objectContaining({ app: { name: 'firefox', arguments: ['--private-window'] } }),
     )
   })
 
+  it('reads and opens stdin when there is no target and stdin is piped', async () => {
+    Object.defineProperty(process, 'stdin', {
+      value: Readable.from(Buffer.from('hello')),
+      configurable: true,
+    })
+    filetypeextension.mockReturnValue(['png'])
+
+    await runOpen({ wait: false, background: false, appArguments: [] })
+
+    expect(open).toHaveBeenCalledWith(expect.stringMatching(/\.png$/), expect.anything())
+  })
+
   it('errors out with no target and a TTY stdin', async () => {
-    process.argv = ['node', 'cli.js']
     Object.defineProperty(process, 'stdin', { value: { isTTY: true }, configurable: true })
 
-    await main()
+    await runOpen({ wait: false, background: false, appArguments: [] })
+
     expect(process.exitCode).toBe(1)
     process.exitCode = 0
     expect(open).not.toHaveBeenCalled()
+  })
+})
+
+describe('main', () => {
+  beforeEach(() => {
+    open.mockClear()
+  })
+
+  it('parses flags and the target through citty', async () => {
+    await main(['https://example.com', '--wait'])
+    expect(open).toHaveBeenCalledWith(
+      'https://example.com',
+      expect.objectContaining({ wait: true, background: false }),
+    )
+  })
+
+  it('splits the app and its arguments off after a literal `--`', async () => {
+    await main(['https://example.com', '--', 'firefox', '--private-window'])
+    expect(open).toHaveBeenCalledWith(
+      'https://example.com',
+      expect.objectContaining({ app: { name: 'firefox', arguments: ['--private-window'] } }),
+    )
   })
 })

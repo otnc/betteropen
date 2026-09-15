@@ -7,47 +7,16 @@ import { join } from 'node:path'
 import process from 'node:process'
 import * as streamConsumers from 'node:stream/consumers'
 import { pathToFileURL } from 'node:url'
-import { parseArgs } from 'node:util'
+import { type ArgsDef, defineCommand, runMain } from 'citty'
 import { filetypeextension } from 'magic-bytes.js'
 import { open } from './launcher.js'
 
 // `dist/cli.js` and `src/cli.ts` are both one level below the package root, so this resolves correctly whether running the built CLI or this source file directly.
-const { version } = JSON.parse(
+const { version, description } = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
 ) as {
   version: string
-}
-
-const usage = `Usage
-  betteropen <file|url> [--wait] [--background] [-- <app> [args]]
-  cat <file> | betteropen [--extension <ext>] [--wait] [--background] [-- <app> [args]]
-
-Options
-  --wait         Wait for the app to exit
-  --background   Do not bring the app to the foreground (macOS only)
-  --extension    File extension to use when stdin's type can't be detected
-  --version      Print the version number
-  --help         Print this help message
-
-Examples
-  betteropen https://example.com
-  betteropen https://example.com -- firefox
-  betteropen unicorn.png
-  cat unicorn.png | betteropen
-  echo '<h1>hi</h1>' | betteropen --extension=html`
-
-export function splitAppArguments(argv: string[]): {
-  mainArgs: string[]
-  app?: string
-  appArguments: string[]
-} {
-  const separatorIndex = argv.indexOf('--')
-  if (separatorIndex === -1) {
-    return { mainArgs: argv, appArguments: [] }
-  }
-
-  const [app, ...appArguments] = argv.slice(separatorIndex + 1)
-  return { mainArgs: argv.slice(0, separatorIndex), app, appArguments }
+  description: string
 }
 
 export async function readTargetFromStdin(extensionOverride?: string): Promise<string> {
@@ -60,53 +29,96 @@ export async function readTargetFromStdin(extensionOverride?: string): Promise<s
   return filePath
 }
 
-export async function main(): Promise<void> {
-  const { mainArgs, app, appArguments } = splitAppArguments(process.argv.slice(2))
+export type RunOpenArgs = {
+  target?: string
+  wait: boolean
+  background: boolean
+  extension?: string
+  app?: string
+  appArguments: readonly string[]
+}
 
-  const { values, positionals } = parseArgs({
-    args: mainArgs,
-    allowPositionals: true,
-    options: {
-      wait: { type: 'boolean', default: false },
-      background: { type: 'boolean', default: false },
-      extension: { type: 'string' },
-      version: { type: 'boolean', default: false },
-      help: { type: 'boolean', default: false },
-    },
-  })
-
-  if (values.version) {
-    console.log(version)
-    return
-  }
-
-  if (values.help) {
-    console.log(usage)
-    return
-  }
-
-  const [target] = positionals
-
+export async function runOpen(args: RunOpenArgs): Promise<void> {
   const options = {
-    wait: values.wait,
-    background: values.background,
-    ...(app ? { app: { name: app, arguments: appArguments } } : {}),
+    wait: args.wait,
+    background: args.background,
+    ...(args.app ? { app: { name: args.app, arguments: [...args.appArguments] } } : {}),
   }
 
-  if (target) {
-    await open(target, options)
+  if (args.target) {
+    await open(args.target, options)
     return
   }
 
   if (process.stdin.isTTY) {
-    console.error('Specify a file path or URL.\n')
-    console.error(usage)
+    console.error('Specify a file path or URL.')
     process.exitCode = 1
     return
   }
 
-  const filePath = await readTargetFromStdin(values.extension)
+  const filePath = await readTargetFromStdin(args.extension)
   await open(filePath, options)
+}
+
+const argsDef = {
+  target: {
+    type: 'positional',
+    description: 'File path or URL to open',
+    required: false,
+  },
+  wait: {
+    type: 'boolean',
+    description: 'Wait for the app to exit',
+    default: false,
+  },
+  background: {
+    type: 'boolean',
+    description: 'Do not bring the app to the foreground (macOS only)',
+    default: false,
+  },
+  extension: {
+    type: 'string',
+    description: "File extension to use when stdin's type can't be detected",
+  },
+} as const satisfies ArgsDef
+
+/**
+ * Everything after a literal `--` is the app to open with and its own arguments (e.g. `betteropen file.png -- firefox --private-window`) — split it off before handing the rest to citty, since citty's own positional-arg slots don't distinguish "before `--`" from "after `--`".
+ */
+function splitAtDoubleDash(argv: readonly string[]): {
+  mainArgs: string[]
+  app?: string
+  appArguments: string[]
+} {
+  const separatorIndex = argv.indexOf('--')
+  if (separatorIndex === -1) {
+    return { mainArgs: [...argv], appArguments: [] }
+  }
+
+  const [app, ...appArguments] = argv.slice(separatorIndex + 1)
+  return { mainArgs: argv.slice(0, separatorIndex), app, appArguments }
+}
+
+function buildCommand(app: string | undefined, appArguments: readonly string[]) {
+  return defineCommand({
+    meta: { name: 'betteropen', version, description },
+    args: argsDef,
+    async run({ args }) {
+      await runOpen({
+        target: args.target,
+        wait: args.wait,
+        background: args.background,
+        extension: args.extension,
+        app,
+        appArguments,
+      })
+    },
+  })
+}
+
+export async function main(argv: readonly string[] = process.argv.slice(2)): Promise<void> {
+  const { mainArgs, app, appArguments } = splitAtDoubleDash(argv)
+  await runMain(buildCommand(app, appArguments), { rawArgs: mainArgs })
 }
 
 const isMainModule =
