@@ -55,8 +55,13 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "xdg-open"
   ],
+  "bin": {
+    "betteropen": "./dist/cli.js",
+    "open": "./dist/cli.js"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -74,6 +79,9 @@
     "check": "biome check --write",
     "ci": "biome ci",
     "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "magic-bytes.js": "^1.13.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
