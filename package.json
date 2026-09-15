@@ -1,0 +1,59 @@
+{
+  "name": "<package-name>",
+  "version": "0.0.0",
+  "description": "<package-description>",
+  "keywords": [],
+  "homepage": "<package-git>#readme",
+  "bugs": {
+    "url": "<package-git>/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+<package-git>.git"
+  },
+  "license": "<package-license>",
+  "author": "<package-author>",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/index.d.mts",
+        "require": "./dist/index.d.cts"
+      },
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format --write",
+    "format:check": "biome format",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --write",
+    "check": "biome check --write",
+    "ci": "biome ci",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
+    "@types/node": "^22.20.2",
+    "@vitest/coverage-v8": "^5.0.1",
+    "tsdown": "^0.23.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}
