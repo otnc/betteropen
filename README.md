@@ -23,7 +23,7 @@ import { greet } from 'betteropen'
 
 ## Requirements
 
-- Node.js >= 22
+- Node.js >= 20
 
 ## Features
 
