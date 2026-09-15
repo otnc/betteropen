@@ -1,6 +1,6 @@
 {
   "name": "betteropen",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Open URLs, files, and executables. Cross-platform, ESM + CJS, dependency-free, CLI included.",
   "keywords": [
     "app",
