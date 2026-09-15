@@ -84,6 +84,7 @@ A feature comparison against packages commonly reached for in this space — two
 
 | | betteropen | open | open-cli | tiny-open |
 | --- | --- | --- | --- | --- |
+| Link | [npm](https://www.npmjs.com/package/betteropen) · [GitHub](https://github.com/otnc/betteropen) | [npm](https://www.npmjs.com/package/open) · [GitHub](https://github.com/sindresorhus/open) | [npm](https://www.npmjs.com/package/open-cli) · [GitHub](https://github.com/sindresorhus/open-cli) | [npm](https://www.npmjs.com/package/tiny-open) · [GitHub](https://github.com/fabiospampinato/tiny-open) |
 | Library **and** CLI, one package | ✅ | library only | CLI only, depends on `open` | library only |
 | Node.js requirement | >= 20 (declared) | >= 20 | >= 22 | not declared |
 | Default browser detection | ✅ | ✅ | via `open` | — |
