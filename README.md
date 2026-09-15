@@ -80,17 +80,21 @@ Run `betteropen --help` for the full flag list.
 
 ## How it compares
 
-A feature comparison against the two packages most people reach for today for this job — one library, one separate CLI wrapping it. All three cover the same ground on the basics (macOS/Windows/Linux/WSL, default browser resolution, private/incognito mode, `wait`/`background`/`newInstance`), so the table below focuses on where they actually differ:
+A feature comparison against packages commonly reached for in this space — two that together cover roughly what betteropen does alone (a library plus a separate CLI wrapping it), and one minimal library covering just the basics. All four open URLs/files/executables cross-platform, so the table below focuses on where they actually differ:
 
-| | betteropen | open | open-cli |
-| --- | --- | --- | --- |
-| Node.js | >= 20 | >= 20 | >= 22 |
-| Library and CLI | both, one package | library only | CLI only, depends on `open` |
-| Module format | ESM + CJS | ESM only | ESM only (bin script) |
-| Runtime dependencies | 2 (CLI only) | 6 | 4, including `open` itself |
-| Browser shortcuts | Chrome, Brave, Firefox, Edge, Safari, Opera, Vivaldi, Chromium | Chrome, Brave, Firefox, Edge, Safari | — |
-| Recognizes beta/dev/nightly/ESR browser channels as their base browser | ✅ | — | — |
-| CLI command name(s) | `betteropen`, `open` | — | `open-cli` |
+| | betteropen | open | open-cli | tiny-open |
+| --- | --- | --- | --- | --- |
+| Library **and** CLI, one package | ✅ | library only | CLI only, depends on `open` | library only |
+| Node.js requirement | >= 20 (declared) | >= 20 | >= 22 | not declared |
+| Default browser detection | ✅ | ✅ | via `open` | — |
+| Built-in browser shortcuts | 8 — Chrome, Brave, Firefox, Edge, Safari, Opera, Vivaldi, Chromium | 5 | via `open` | — |
+| Recognizes beta/dev/nightly/ESR browser channels as their base browser | ✅ | — | — | — |
+| `wait` / `background` / `newInstance` options | ✅ | ✅ | `--wait`/`--background` only | — |
+| Returns the spawned `ChildProcess` | ✅ | ✅ | n/a | boolean only |
+| Module format | ESM + CJS | ESM only | ESM only | ESM only |
+| CLI stdin piping with type detection | ✅ | — | ✅ | — |
+| Library runtime dependencies | 0 | 6 | — | 0 |
+| CLI runtime dependencies | 2 | — | 4, including `open` itself | no CLI |
 
 ## Requirements
 
