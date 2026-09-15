@@ -5,7 +5,4 @@
 
 # Extensionless shell script — GitHub can usually infer this from the shebang,
 # but pin it explicitly so it always renders with shell syntax highlighting.
-xdg-open linguist-language=Shell
-# Vendored third-party script, not this project's own code — exclude it from
-# the repo's language statistics.
-xdg-open linguist-vendored
+/xdg-open linguist-language=Shell
