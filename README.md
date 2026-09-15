@@ -80,20 +80,17 @@ Run `betteropen --help` for the full flag list.
 
 ## How it compares
 
-A feature comparison against the two packages most people reach for today for this job — one library, one separate CLI wrapping it:
+A feature comparison against the two packages most people reach for today for this job — one library, one separate CLI wrapping it. All three cover the same ground on the basics (macOS/Windows/Linux/WSL, default browser resolution, private/incognito mode, `wait`/`background`/`newInstance`), so the table below focuses on where they actually differ:
 
 | | betteropen | open | open-cli |
 | --- | --- | --- | --- |
 | Node.js | >= 20 | >= 20 | >= 22 |
-| Library **and** CLI in one package | ✅ | library only | CLI only, depends on `open` |
-| Runtime dependencies | 1 (CLI only) | 6 | 4, including `open` itself |
-| macOS / Windows / Linux / WSL | ✅ | ✅ | ✅ (via `open`) |
-| Default browser detection | ✅ | ✅ | ✅ (via `open`) |
-| Recognizes beta/dev/nightly/ESR browser channels | ✅ | — | — |
-| Private/incognito mode | ✅ | ✅ | ✅ (via `open`) |
-| Built-in browser shortcuts | Chrome, Brave, Firefox, Edge, Safari, Opera, Vivaldi, Chromium | Chrome, Brave, Firefox, Edge, Safari | — |
-| `wait` / `background` / `newInstance` options | ✅ | ✅ | via `--wait`/`--background` flags |
-| CLI stdin piping with type detection | ✅ | — | ✅ |
+| Library and CLI | both, one package | library only | CLI only, depends on `open` |
+| Module format | ESM + CJS | ESM only | ESM only (bin script) |
+| Runtime dependencies | 2 (CLI only) | 6 | 4, including `open` itself |
+| Browser shortcuts | Chrome, Brave, Firefox, Edge, Safari, Opera, Vivaldi, Chromium | Chrome, Brave, Firefox, Edge, Safari | — |
+| Recognizes beta/dev/nightly/ESR browser channels as their base browser | ✅ | — | — |
+| CLI command name(s) | `betteropen`, `open` | — | `open-cli` |
 
 ## Requirements
 
@@ -108,7 +105,7 @@ A feature comparison against the two packages most people reach for today for th
 - Includes shortcuts for Chrome, Brave, Firefox, Edge, Safari, Opera, Vivaldi, and Chromium out of the box.
 - Ships a CLI in the same package, installed as both `betteropen` and `open` — no separate install needed.
 - Bundles a known-good `xdg-open` for Linux, falling back to the system's own copy when present.
-- Minimal footprint: OS integration has no dependencies of its own, and the whole package pulls in just one small dependency overall (used by the CLI for stdin type detection).
+- Minimal footprint: OS integration has no dependencies of its own — the library itself pulls in nothing, and only the CLI adds two small dependencies (flag parsing and stdin type detection).
 
 ## Contributing
 
