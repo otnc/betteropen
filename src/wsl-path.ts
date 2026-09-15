@@ -8,21 +8,34 @@ const execFile = promisify(childProcess.execFile)
 
 const isUrl = (value: string): boolean => /^[a-z]+:\/\//i.test(value)
 
+// `node:url`'s `fileURLToPath` follows the host OS's own path conventions, which would misinterpret a WSL-side (POSIX) `file:` URL if this package were ever running on Windows itself — this decodes it the POSIX way unconditionally, since a `file:` URL reaching this function always names a path on the WSL (Linux) side.
+function fileUrlToPosixPath(url: string): string {
+  return decodeURIComponent(new URL(url).pathname)
+}
+
 async function wslpath(flag: string, values: readonly string[]): Promise<string[]> {
   const { stdout } = await execFile('wslpath', [flag, ...values], { encoding: 'utf8' })
   return stdout.split(/\r?\n/).filter(Boolean)
 }
 
 /**
- * Convert one or more WSL (Linux-side) paths to their Windows equivalent, via the `wslpath` utility that ships with WSL. URLs are passed through unchanged. Falls back to the original paths if `wslpath` is unavailable.
+ * Convert one or more WSL (Linux-side) paths to their Windows equivalent, via the `wslpath` utility that ships with WSL. Remote URLs (`http:`, `https:`, ...) are passed through unchanged, since any Windows app already understands those regardless of which OS they came from — but a `file:` URL names a local path just as much as a bare one does, so it gets converted too. Falls back to the original value if `wslpath` is unavailable.
  */
 export async function convertWslPathToWindows(target: string): Promise<string> {
-  if (isUrl(target)) {
+  let localPath = target
+
+  if (target.startsWith('file://')) {
+    try {
+      localPath = fileUrlToPosixPath(target)
+    } catch {
+      return target
+    }
+  } else if (isUrl(target)) {
     return target
   }
 
   try {
-    const [converted] = await wslpath('-aw', [target])
+    const [converted] = await wslpath('-aw', [localPath])
     return converted ?? target
   } catch {
     return target

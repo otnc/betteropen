@@ -47,6 +47,22 @@ describe('convertWslPathToWindows', () => {
     const { convertWslPathToWindows } = await import('./wsl-path')
     await expect(convertWslPathToWindows('/home/me/file.txt')).resolves.toBe('/home/me/file.txt')
   })
+
+  it('converts a `file://` URL, unlike a remote URL', async () => {
+    vi.resetModules()
+    const execFile = mockExecFile('C:\\Users\\me\\file.txt\n')
+    vi.doMock('node:child_process', () => ({ default: { execFile } }))
+
+    const { convertWslPathToWindows } = await import('./wsl-path')
+    await expect(convertWslPathToWindows('file:///home/me/file.txt')).resolves.toBe(
+      String.raw`C:\Users\me\file.txt`,
+    )
+    expect(execFile).toHaveBeenCalledWith(
+      'wslpath',
+      ['-aw', '/home/me/file.txt'],
+      expect.anything(),
+    )
+  })
 })
 
 describe('powerShellPathFromWsl', () => {
