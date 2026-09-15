@@ -1,11 +1,12 @@
 # betteropen
 
-> Better and more convenient "open"
+> Open URLs, files, and executables. Cross-platform, ESM + CJS, dependency-free, CLI included.
 
 [![npm](https://img.shields.io/npm/v/betteropen)](https://www.npmjs.com/package/betteropen)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/otnc/betteropen/ci.yml?branch=main)](https://github.com/otnc/betteropen/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/otnc/betteropen/ci.yml?branch=main&label=CI)](https://github.com/otnc/betteropen/actions)
 [![GitHub](https://img.shields.io/github/license/otnc/betteropen)](https://github.com/otnc/betteropen/blob/main/LICENSE)
 [![Node](https://img.shields.io/node/v/betteropen)](https://www.npmjs.com/package/betteropen)
+[![Module](https://img.shields.io/badge/module-ESM%20%2B%20CJS-blue)](https://www.npmjs.com/package/betteropen)
 
 Open URLs, files, and executables in their default (or a chosen) app, from Node.js or the command line — macOS, Windows, Linux, and WSL, as a single package with both a library and a bundled CLI.
 
