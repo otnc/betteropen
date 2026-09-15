@@ -47,6 +47,9 @@ describe('resolveBrowserApp', () => {
     ['com.operasoftware.opera', '--private'],
     ['com.vivaldi.vivaldi', '--incognito'],
     ['org.chromium.chromium', '--incognito'],
+    ['com.brave.browser.dev', '--incognito'],
+    ['BraveDHTML', '--incognito'],
+    ['BraveSSHTM', '--incognito'],
   ])('resolves %s with its private-mode flag', async (id, flag) => {
     defaultBrowserId.mockResolvedValue(id)
     const result = await resolveBrowserApp('browserPrivate')
