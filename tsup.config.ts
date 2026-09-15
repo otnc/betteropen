@@ -16,6 +16,11 @@ export default defineConfig([
     clean: false,
     target,
     platform: 'node',
+    // Without this, the CJS build's `import.meta.url` (used to locate the
+    // bundled xdg-open script relative to this file) compiles to an empty
+    // stand-in with no `.url`, silently breaking that lookup for CJS
+    // consumers on Linux.
+    shims: true,
     outExtension: ({ format }) => ({
       js: format === 'cjs' ? '.cjs' : '.mjs',
     }),
