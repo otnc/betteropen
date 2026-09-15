@@ -43,6 +43,7 @@ npm run ci && npm run typecheck && npm run test && npm run build
 - **Tests live next to the code** as `*.test.ts` and run with vitest.
 - **Comments and docs are in English** and kept brief.
 - **Type-only imports use `import type`** (`verbatimModuleSyntax` is on).
+- **OS integration has no dependencies.** Default browser detection, PowerShell/WSL handling, and similar platform code is implemented directly on top of Node built-ins and system commands rather than third-party packages. `magic-bytes.js` (used only by the CLI for stdin type detection) is the package's one runtime dependency.
 
 ## Pull requests
 
